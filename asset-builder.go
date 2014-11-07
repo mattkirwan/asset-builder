@@ -69,8 +69,8 @@ func main() {
                                     log.Fatal(err)
                                 }
                                 
-                                log.Println("File renamed: %v ---> %v", originalFileName, newFileName)
-                            
+                                log.Println("File renamed: %s ---> %s", originalFileName, newFileName)
+
                             }
                         }  
 
