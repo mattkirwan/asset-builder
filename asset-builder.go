@@ -3,6 +3,11 @@ package main
 import (
     "gopkg.in/fsnotify.v1"
     "log"
+    "path/filepath"
+    "strings"
+    "crypto"
+    "menteslibres.net/gosexy/checksum"
+    "os"
 )
 
 var watcher, err = fsnotify.NewWatcher()
@@ -39,10 +44,36 @@ func main() {
                     // any methods on the struct that implement it and therefore return a nicely formatted event string by
                     // just using the actual struct.
                     log.Println("Event Triggered: ", event)
-
-                    // 
+ 
                     if event.Op&fsnotify.Write == fsnotify.Write {
-                        log.Println("File Modified:", event.Name)
+
+                        originalFileName := event.Name
+
+                        fileSha256 := checksum.File(originalFileName, crypto.SHA256)
+
+                        fileExt := filepath.Ext(originalFileName)
+                        
+                        originalFileNameNoExt := strings.TrimSuffix(originalFileName, fileExt)
+
+                        newFileNameParts := []string{originalFileNameNoExt, fileSha256[0:6]}
+
+                        newFileName := strings.Join(newFileNameParts, "_") + fileExt
+
+                        if _, err := os.Stat(newFileName); err != nil {
+                            
+                            if os.IsNotExist(err) {
+
+                                err := os.Rename(originalFileName, newFileName)
+
+                                if err != nil {
+                                    log.Fatal(err)
+                                }
+                                
+                                log.Println("File renamed: %v ---> %v", originalFileName, newFileName)
+                            
+                            }
+                        }  
+
                     }
 
                 // An error event was detected by the blocking select.    
@@ -52,7 +83,7 @@ func main() {
         }
     }()
 
-    err = watcher.Add("/home/mattkirwan/")
+    err = watcher.Add("/home/mattkirwan/asset-builder-test")
     
     if err != nil {
         log.Fatal(err)
